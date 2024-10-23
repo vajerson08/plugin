@@ -1,0 +1,1145 @@
+;(function () {
+  const link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.href =
+    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'
+  document.head.appendChild(link)
+
+  let fontSize = 16 // Default font size in pixels
+  let contrast = 100 // Default contrast percentage
+  let magnifyActive = false 
+  let letterSpacing = 0 // Default letter spacing in pixels
+  let escalaCinzaAtiva = false // State for grayscale filter
+  let contrasteNegativoAtivo = false // State for negative contrast
+  let aguardandoNome = false;
+
+  const popupHTML = `
+    <div id="acessibilidade-button" style="position: fixed; top: 200px; right: 10px; background: #6200ea; color: white; padding: 10px; cursor: pointer; z-index: 10001; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); display: flex; align-items: center; font-size: 16px; border-radius: 10px;">
+      <i class="fas fa-universal-access fa-2x" style="margin-right: 10px;"></i>
+    </div>
+
+    <div id="microfone-button" style="position: fixed; top: 150px; right: 10px; background: #6200ea; color: white; padding: 10px; cursor: pointer; z-index: 10001; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); display: flex; align-items: center; font-size: 16px;">
+      <i class="fas fa-microphone fa-2x" style="margin-right: 10px;"></i>
+    <div id="status-indicator" style="width: 12px; height: 12px; border-radius: 50%; background-color: red; margin-left: 10px;"></div>
+    </div>
+
+    <div id="acessibilidade-popup" style="display: none; position: fixed; top: 80px; right: 50px; width: 90%; max-width: 300px; max-height: 80vh; overflow-y: auto; background: rgba(255, 255, 255, 0.3); padding: 20px; border: 1px solid rgba(255, 255, 255, 0.18); box-shadow: 0 4px 8px rgba(0,0,0,0.1); z-index: 10000; border-radius: 10px; backdrop-filter: blur(10px); background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.2) 100%); display: flex; flex-direction: column; align-items: center; opacity: 0; transform: translateY(-20px); transition: opacity 0.5s, transform 0.5s; pointer-events: none;">
+    <div id="fonte" style="margin: 5px; padding: 10px; border: none; color: #6200ea; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+           <b>Fonte:</b>
+    </div>
+        <button onclick="aumentarTexto()" style="margin: 5px; padding: 10px; border: none; background: #6200ea; color: white; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+          <i class="fas fa-search-plus" style="margin-right: 8px;"></i> Aumentar texto
+        </button>
+        <button onclick="diminuirTexto()" style="margin: 5px; padding: 10px; border: none; background: #6200ea; color: white; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+          <i class="fas fa-search-minus" style="margin-right: 8px;"></i> Diminuir texto
+        </button>
+        <button onclick="fonteNegrito()" style="margin: 5px; padding: 10px; border: none; background: #6200ea; color: white; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+          <i class="fas fa-font" style="margin-right: 8px;"></i> Fonte em negrito
+        </button>
+        <div id="fonte" style="margin: 5px; padding: 10px; border: none; color: #6200ea; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+           <b>Contraste:</b>
+        </div>
+        <button onclick="escalaDeCinza()" style="margin: 5px; padding: 10px; border: none; background: #6200ea; color: white; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+          <i class="fas fa-adjust" style="margin-right: 8px;"></i> Escala de cinza
+        </button>
+        <button onclick="contrasteAlto()" style="margin: 5px; padding: 10px; border: none; background: #6200ea; color: white; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+          <i class="fas fa-adjust" style="margin-right: 8px;"></i> Contraste alto
+        </button>
+        <button onclick="contrasteBaixo()" style="margin: 5px; padding: 10px; border: none; background: #6200ea; color: white; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+          <i class="fas fa-adjust" style="margin-right: 8px;"></i> Contraste baixo
+        </button>
+        <button onclick="contrasteNegativo()" style="margin: 5px; padding: 10px; border: none; background: #6200ea; color: white; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+          <i class="fas fa-adjust" style="margin-right: 8px;"></i> Contraste negativo
+        </button>
+        <div id="link" style="margin: 5px; padding: 10px; border: none; color: #6200ea; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+           <b>Link:</b>
+    </div>
+        <button onclick="linksSublinhados()" style="margin: 5px; padding: 10px; border: none; background: #6200ea; color: white; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+          <i class="fas fa-link" style="margin-right: 8px;"></i> Links sublinhados
+        </button>
+        <div id="lupa" style="margin: 5px; padding: 10px; border: none; color: #6200ea; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+           <b>Lupa:</b>
+    </div>
+        <button onclick="toggleMagnify()" style="margin: 5px; padding: 10px; border: none; background: #6200ea; color: white; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+          <i class="fas fa-search" style="margin-right: 8px;"></i> Modo lupa
+        </button>
+        <div id="espaçamento" style="margin: 5px; padding: 10px; border: none; color: #6200ea; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+           <b>Espaçamentos:</b>
+    </div>
+        <button onclick="aumentarEspaco()" style="margin: 5px; padding: 10px; border: none; background: #6200ea; color: white; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+          <i class="fas fa-text-height" style="margin-right: 8px;"></i> Aumentar espaçamento
+        </button>
+        <button onclick="diminuirEspaco()" style="margin: 5px; padding: 10px; border: none; background: #6200ea; color: white; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+          <i class="fas fa-text-height" style="margin-right: 8px;"></i> Diminuir espaçamento
+        </button>
+        <div id="reiniciar" style="margin: 5px; padding: 10px; border: none; color: #6200ea; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+           <b>Reiniciar:</b>
+    </div>
+        <button onclick="reiniciar()" style="margin: 5px; padding: 10px; border: none; background: #d32f2f; color: white; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+          <i class="fas fa-redo" style="margin-right: 8px;"></i> Reiniciar
+        </button>
+        <div id="ajuda" style="margin: 5px; padding: 10px; border: none; color: #6200ea; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+           <b>Ajuda:</b>
+    </div>
+       <button onclick="mostrarAjuda()" style="margin: 5px; padding: 10px; border: none; background: #03a9f4; color: white; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+          <i class="fas fa-question-circle" style="margin-right: 8px;"></i> Ajuda
+        </button>
+      </div>
+      <div id="ajuda-modal" style="display: none; position: fixed; top: 25%; right: 15%; width: 80%; max-width: 400px; background: #6200ea; padding: 20px; border: 1px solid #ccc; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 10002; border-radius: 10px; opacity: 0; transform: translateY(-20px); transition: opacity 0.5s, transform 0.5s; max-height: 70vh; overflow-y: auto;">
+        <p style="color: white;"><strong>RESUMO DAS FUNCIONALIDADES:</strong></p>
+        <p style="color: white;"><strong>Aumentar texto:</strong> Aumenta o tamanho da fonte do texto em toda a página.</p>
+        <p style="color: white;"><strong>Diminuir texto:</strong> Diminui o tamanho da fonte do texto em toda a página.</p>
+        <p style="color: white;"><strong>Fonte em negrito:</strong> Altera a fonte da página para ficar em negrito.</p>
+        <p style="color: white;"><strong>Escala de cinza:</strong> Ativa/desativa o filtro de escala de cinza.</p>
+        <p style="color: white;"><strong>Contraste alto:</strong> Aumenta o contraste da página.</p>
+        <p style="color: white;"><strong>Contraste baixo:</strong> Diminui o contraste da página.</p>
+        <p style="color: white;"><strong>Contraste negativo:</strong> Inverte as cores da página.</p>
+        <p style="color: white;"><strong>Links sublinhados:</strong> Sublinha todos os links da página.</p>
+        <p style="color: white;"><strong>Modo lupa:</strong> Ativa/desativa a ampliação ao passar o mouse sobre os elementos.</p>
+        <p style="color: white;"><strong>Aumentar espaçamento:</strong> Aumenta o espaçamento entre letras.</p>
+        <p style="color: white;"><strong>Diminuir espaçamento:</strong> Diminui o espaçamento entre letras.</p>
+        <button onclick="fecharAjuda()" style="margin-top: 10px; padding: 10px; border: none; background: #d32f2f; color: white; border-radius: 5px; cursor: pointer; transition: background 0.3s; width: 100%; display: flex; align-items: center;">
+          <i class="fas fa-times" style="margin-right: 8px;"></i> Fechar
+        </button>
+      </div>
+    `
+    
+  const style = `
+  /* Remove o overflow horizontal */
+  body {
+      overflow-x: hidden;
+  }
+
+  /* Estiliza o scrollbar para navegadores WebKit (Chrome, Safari) */
+  #acessibilidade-popup::-webkit-scrollbar {
+      width: 8px;
+  }
+
+  #acessibilidade-popup::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+  }
+
+  #acessibilidade-popup::-webkit-scrollbar-thumb {
+      background: #6200ea;
+      border-radius: 10px;
+      border: 2px solid transparent; /* Para adicionar um pequeno espaço ao redor do polegar */
+      background-clip: content-box; /* Faz o polegar aparecer menor */
+  }
+
+  #acessibilidade-popup::-webkit-scrollbar-thumb:hover {
+      background: #3700b3;
+  }
+
+  /* Estiliza o scrollbar para Firefox */
+  #acessibilidade-popup {
+      scrollbar-width: thin;
+      scrollbar-color: #6200ea rgba(255, 255, 255, 0.2);
+  }
+
+  #acessibilidade-popup::-moz-scrollbar {
+      width: 8px;
+  }
+
+  #acessibilidade-popup::-moz-scrollbar-track {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+  }
+
+  #acessibilidade-popup::-moz-scrollbar-thumb {
+      background: #6200ea;
+      border-radius: 10px;
+  }
+
+  #acessibilidade-popup::-moz-scrollbar-thumb:hover {
+      background: #3700b3;
+  }
+`
+document.body.insertAdjacentHTML('beforeend', popupHTML);
+
+const botao = document.getElementById('acessibilidade-button');
+
+// Mostrar tooltip ao passar o mouse
+botao.addEventListener('mouseover', () => {
+  tooltip.style.visibility = 'visible';
+});
+
+// Esconder tooltip ao sair do mouse
+botao.addEventListener('mouseout', () => {
+  tooltip.style.visibility = 'hidden';
+});
+
+// Adicionar o estilo ao documento
+const styleElement = document.createElement('style');
+styleElement.textContent = style;
+document.head.appendChild(styleElement);
+
+// Adicionar evento de clique para abrir/fechar o popup
+document
+  .getElementById('acessibilidade-button')
+  .addEventListener('click', function () {
+    const popup = document.getElementById('acessibilidade-popup');
+    const ajudaModal = document.getElementById('ajuda-modal');
+    const isVisible = popup.style.opacity === '1';
+
+    // Toggle a visibilidade do popup de acessibilidade sem usar display
+    if (!isVisible) {
+      popup.style.opacity = '1';
+      popup.style.transform = 'translateY(0)';
+      popup.style.pointerEvents = 'auto';
+    } else {
+      popup.style.opacity = '0';
+      popup.style.transform = 'translateY(-20px)';
+      popup.style.pointerEvents = 'none';
+    }
+
+    // Fechar o popup de ajuda se ele estiver visível
+    if (ajudaModal && ajudaModal.style.display === 'block') {
+      fecharAjuda();
+    }
+  });
+
+  window.aumentarTexto = function () {
+    fontSize += 2
+    document.querySelectorAll('*').forEach(el => {
+      el.style.fontSize = `${
+        parseFloat(window.getComputedStyle(el).fontSize) + 2
+      }px`
+    })
+  }
+
+  window.diminuirTexto = function () {
+    document.querySelectorAll('*').forEach(el => {
+      const currentSize = parseFloat(window.getComputedStyle(el).fontSize)
+      if (currentSize > 10) {
+        // Define um tamanho mínimo para evitar que o texto fique muito pequeno
+        el.style.fontSize = `${currentSize - 2}px`
+      }
+    })
+  }
+
+  window.fonteNegrito = function () {
+    document.querySelectorAll('*').forEach(el => {
+      // Verifica se o elemento é um ícone ou parte da widget
+      if (el.classList.contains('fas') || el.closest('#acessibilidade-popup')) {
+        // Se for um ícone, não faz nada
+        if (el.classList.contains('fas')) {
+          return;
+        }
+        // Se for parte da widget, altera a fonte para negrito
+        if (el.closest('#acessibilidade-popup')) {
+          if (el.style.fontWeight === 'bold') {
+            el.style.fontWeight = 'normal';
+          } else {
+            el.style.fontWeight = 'bold';
+          }
+          return;
+        }
+      }
+      
+      // Alterna o peso da fonte entre negrito e normal para outros elementos
+      if (el.style.fontWeight === 'bold') {
+        el.style.fontWeight = 'normal';
+      } else {
+        el.style.fontWeight = 'bold';
+      }
+    })
+  }
+
+  window.escalaDeCinza = function () {
+    const elementos = document.querySelectorAll('body *');
+
+    elementos.forEach((elemento) => {
+        if (escalaCinzaAtiva) {
+            elemento.style.filter = '';
+        } else {
+            elemento.style.filter = 'grayscale(100%)';
+        }
+    });
+
+    escalaCinzaAtiva = !escalaCinzaAtiva;
+}
+
+window.contrasteAlto = function () {
+    const elementos = document.querySelectorAll('body *');
+    contrast = Math.min(contrast + 50, 300); // Incrementa o contraste em 50%, máx 300%
+
+    elementos.forEach((elemento) => {
+        elemento.style.filter = `contrast(${contrast}%)`;
+    });
+}
+
+window.contrasteBaixo = function () {
+    const elementos = document.querySelectorAll('body *');
+    contrast = Math.max(contrast - 50, 50); // Decrementa o contraste em 50%, mín 50%
+
+    elementos.forEach((elemento) => {
+        elemento.style.filter = `contrast(${contrast}%)`;
+    });
+}
+
+window.contrasteNegativo = function () {
+    const elementos = document.querySelectorAll('body *');
+
+    elementos.forEach((elemento) => {
+        if (contrasteNegativoAtivo) {
+            elemento.style.filter = '';
+        } else {
+            elemento.style.filter = 'invert(100%)';
+        }
+    });
+
+    contrasteNegativoAtivo = !contrasteNegativoAtivo;
+}
+
+  window.linksSublinhados = function () {
+    document
+      .querySelectorAll('a')
+      .forEach(a => (a.style.textDecoration = 'underline'))
+  }
+
+  window.reiniciar = function () {
+    // Reseta os estilos principais do body
+    document.body.style = '';
+
+    // Reseta as variáveis globais de controle
+    fontSize = 16; // Volta o tamanho da fonte ao valor padrão
+    contrast = 100; // Volta o contraste ao valor padrão
+    letterSpacing = 0; // Reinicia o espaçamento das letras para o padrão
+
+    // Verifica se o modo lupa está ativo e desativa, se necessário
+    if (magnifyActive) {
+        toggleMagnify(); // Chama a função que desativa a lupa
+    }
+
+    // Reseta os estados das funcionalidades de acessibilidade
+    escalaCinzaAtiva = false; // Reseta o estado da escala de cinza
+    contrasteNegativoAtivo = false; // Reseta o estado do contraste negativo
+
+    // Percorre todos os elementos e reseta seus estilos aplicados manualmente
+    document.querySelectorAll('*').forEach(el => {
+        el.style.fontSize = ''; // Reseta o tamanho da fonte
+        el.style.letterSpacing = ''; // Reseta o espaçamento das letras
+        el.style.fontWeight = ''; // Reseta o peso da fonte
+        el.style.filter = ''; // Remove qualquer filtro aplicado (como escala de cinza ou contraste)
+    });
+
+    // Reseta o estilo de sublinhado dos links
+    document.querySelectorAll('a').forEach(a => {
+        a.style.textDecoration = ''; // Reseta o sublinhado dos links
+    });
+};
+
+// Criar o span ao carregar o site
+const span = document.createElement('span');
+
+span.id = 'popup-span';
+span.innerText = 'Bem-vindo, se deseja habilitar o microfone para navegar pelo site, aperte a tecla de espaço no seu teclado, se não, basta não apertar em nada';
+span.style.position = 'fixed';
+span.style.top = '50px';
+span.style.left = '50%';
+span.style.transform = 'translateX(-50%)';
+span.style.backgroundColor = '#6200ea';
+span.style.color = 'white';
+span.style.padding = '10px 20px';
+span.style.fontSize = '18px';
+span.style.borderRadius = '5px';
+span.style.zIndex = '10000';
+span.style.opacity = '0';
+span.style.transition = 'opacity 1s ease-in-out';
+
+document.body.appendChild(span);
+
+// Exibir o span
+setTimeout(() => {
+span.style.opacity = '0';
+}, 100);
+
+// Função para iniciar a fala automática
+function speakText(text) {
+const utterance = new SpeechSynthesisUtterance(text);
+utterance.lang = 'pt-BR'; // Definir idioma para português
+speechSynthesis.speak(utterance);
+}
+
+// Simular clique no botão de microfone
+function simulateMicrophoneClick() {
+const micButton = document.getElementById('microfone-button'); // Certifique-se de que o botão tenha o id "microfone-button"
+if (micButton) {
+  micButton.click(); // Simula o clique no botão de microfone
+}
+}
+
+// Função para iniciar a fala e esperar pela barra de espaço
+function initSpeech(event) {
+// Verificar se o clique foi no botão de acessibilidade, no botão de microfone, no botão de aumentar texto, ou no link com href="#servicos"
+const clickedElement = event.target;
+
+// Verificar se o elemento clicado ou seu pai tem o id 'acessibilidade-button', 'microfone-button', ou é o link '#servicos', ou se é o botão de aumentar texto
+const isAccessibilityButton = clickedElement.id === 'acessibilidade-button' || clickedElement.closest('#acessibilidade-button');
+const isAumentarTextoButton = clickedElement.matches('button[onclick="aumentarTexto()"]') || clickedElement.closest('button[onclick="aumentarTexto()"]');
+const isDiminuirTextoButton = clickedElement.matches('button[onclick="diminuirTexto()"]') || clickedElement.closest('button[onclick="diminuirTexto()"]');
+const isFonteNegritoButton = clickedElement.matches('button[onclick="fonteNegrito()"]') || clickedElement.closest('button[onclick="fonteNegrito()"]');
+const isEscalaCinza = clickedElement.matches('button[onclick="escalaDeCinza()"]') || clickedElement.closest('button[onclick="escalaDeCinza()"]');
+const isContrasteAlto = clickedElement.matches('button[onclick="contrasteAlto()"]') || clickedElement.closest('button[onclick="contrasteAlto()"]');
+const isContrasteBaixo = clickedElement.matches('button[onclick="contrasteBaixo()"]') || clickedElement.closest('button[onclick="contrasteBaixo()"]');
+const isContrasteNegativo = clickedElement.matches('button[onclick="contrasteNegativo()"]') || clickedElement.closest('button[onclick="contrasteNegativo()"]');
+const isLinksSublinhados = clickedElement.matches('button[onclick="linksSublinhados()"]') || clickedElement.closest('button[onclick="linksSublinhados()"]');
+const isToggleMagnify = clickedElement.matches('button[onclick="toggleMagnify()"]') || clickedElement.closest('button[onclick="toggleMagnify()"]');
+const isAumentarEspaco = clickedElement.matches('button[onclick="aumentarEspaco()"]') || clickedElement.closest('button[onclick="aumentarEspaco()"]');
+const isDiminuirEspaco = clickedElement.matches('button[onclick="diminuirEspaco()"]') || clickedElement.closest('button[onclick="diminuirEspaco()"]');
+const isReiniciar = clickedElement.matches('button[onclick="reiniciar()"]') || clickedElement.closest('button[onclick="reiniciar()"]');
+const isMostrarAjuda = clickedElement.matches('button[onclick="mostrarAjuda()"]') || clickedElement.closest('button[onclick="mostrarAjuda()"]');
+const isFecharAjuda = clickedElement.matches('button[onclick="fecharAjuda()"]') || clickedElement.closest('button[onclick="fecharAjuda()"]');
+const isMicrophoneButton = clickedElement.id === 'microfone-button' || clickedElement.closest('#microfone-button');
+const isInicioLink = clickedElement.matches('a[href="#inicio"]') || clickedElement.closest('a[href="#inicio"]');
+const isServicosLink = clickedElement.matches('a[href="#servicos"]') || clickedElement.closest('a[href="#servicos"]');
+const isSobreLink = clickedElement.matches('a[href="#sobre"]') || clickedElement.closest('a[href="#sobre"]');
+const isTimeLink = clickedElement.matches('a[href="#time"]') || clickedElement.closest('a[href="#time"]');
+const isContatoLink = clickedElement.matches('a[href="#contato"]') || clickedElement.closest('a[href="#contato"]');
+const isWhatsAppLink = clickedElement.matches('a[href="https://wa.me/557999860906"]') || clickedElement.closest('a[href="https://wa.me/557999860906"]');
+const isFacebookLink = clickedElement.matches('a[href="https://www.facebook.com/seuperfil"]') || clickedElement.closest('a[href="https://www.facebook.com/seuperfil"]');
+const isInstagramkLink = clickedElement.matches('a[href="https://www.instagram.com/vizy.startup"]') || clickedElement.closest('a[href="https://www.instagram.com/vizy.startup"]');
+const isLinkedInkLink = clickedElement.matches('a[href="https://www.linkedin.com/in/vizy-tech-361865329?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"]') || clickedElement.closest('a[href="https://www.linkedin.com/in/vizy-tech-361865329?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"]');
+const isNameInput = clickedElement.matches('input#name') || clickedElement.closest('input#name');
+const isEmailInput = clickedElement.matches('input#email') || clickedElement.closest('input#email');
+const isMessageTextarea = clickedElement.matches('textarea#message') || clickedElement.closest('textarea#message');
+const isSubmitButton = clickedElement.matches('button[type="submit"]') || clickedElement.closest('button[type="submit"]');
+const isBackToTopButton = clickedElement.id === 'backToTop' || clickedElement.closest('#backToTop');
+
+// Se o clique for no botão de acessibilidade, no botão de microfone, no botão de aumentar texto, ou no link '#servicos', não executar a fala
+if (isAccessibilityButton || isMicrophoneButton || isInicioLink || isServicosLink || isSobreLink || isTimeLink || isContatoLink || isAumentarTextoButton || isDiminuirTextoButton || isFonteNegritoButton || isEscalaCinza || isContrasteAlto || isContrasteBaixo || isContrasteNegativo || isLinksSublinhados || isToggleMagnify || isAumentarEspaco || isDiminuirEspaco || isReiniciar || isMostrarAjuda || isFecharAjuda || isWhatsAppLink || isFacebookLink || isInstagramkLink || isLinkedInkLink || isNameInput || isEmailInput || isMessageTextarea || isSubmitButton || isBackToTopButton) {
+  return; // Sai da função sem iniciar a fala
+}
+
+// Caso contrário, iniciar a fala
+speakText(span.innerText);
+
+// Iniciar o microfone ou outras funcionalidades aqui após a fala
+// ...
+
+// Remover o span após a fala ser iniciada
+setTimeout(() => {
+  span.style.opacity = '0';
+  setTimeout(() => {
+    span.remove();
+  }, 1000); // Remover após o fade-out
+}, 3000); // Exibir por 3 segundos
+
+// Adicionar evento para detectar a barra de espaço e simular o clique no microfone
+window.addEventListener('keydown', function (event) {
+  // Verificar se a tecla pressionada foi a barra de espaço e se o foco não está em um campo de input ou textarea
+  if (event.code === 'Space' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+    event.preventDefault(); // Evita o comportamento padrão da barra de espaço somente se não estiver em um input ou textarea
+    simulateMicrophoneClick(); // Simula o clique no microfone
+  }
+});
+
+// Remover os listeners após a primeira interação
+window.removeEventListener('keydown', initSpeech);
+window.removeEventListener('click', initSpeech);
+}
+
+// Esperar interação do usuário (pressionar tecla ou clicar)
+window.addEventListener('keydown', initSpeech);
+window.addEventListener('click', initSpeech);
+
+window.toggleMagnify = function () {
+  magnifyActive = !magnifyActive;
+  if (magnifyActive) {
+    document.body.addEventListener('mouseenter', magnify, true);
+    document.body.addEventListener('mouseleave', resetMagnify, true);
+  } else {
+    document.body.removeEventListener('mouseenter', magnify, true);
+    document.body.removeEventListener('mouseleave', resetMagnify, true);
+    resetMagnify();
+  }
+};
+
+function magnify(event) {
+  const element = event.target;
+
+  if (element && element !== document.body && (!isWidget(element)) && (!isContainer(element) || isTextElement(element) || isImageElement(element))) {
+    const rect = element.getBoundingClientRect();
+    const scale = calculateScale(rect);
+
+    element.style.transform = `scale(${scale})`;
+    element.style.transition = 'transform 0.2s, z-index 0.2s';
+    element.style.transformOrigin = 'center';
+    element.style.overflow = 'visible';
+    element.style.zIndex = '1000'; // Aumenta o z-index para sobrepor outros elementos
+
+    // Aplica fundo branco e borda somente se o elemento não for um botão ou link
+    if (!isButtonOrLink(element) || isSpecialParagraph(element)) {
+      element.style.backgroundColor = '#ffffff'; // Fundo branco
+      element.style.boxShadow = '0px 0px 10px rgba(0, 0, 0, 0.5)'; // Adiciona uma sombra ao redor
+      element.style.border = `3px solid #6200ea`; // Adiciona uma borda colorida
+    }
+
+    if (!isImageElement(element)) {
+      adjustPosition(element, rect, scale);
+    }
+  }
+}
+
+// Função para verificar se o parágrafo é especial
+function isSpecialParagraph(element) {
+  if (element.tagName === 'P') {
+    // Exemplo: Adicionar lógica para identificar parágrafos especiais
+    // Por exemplo, verificar o comprimento do texto
+    return element.textContent.length > 100; // Ajuste o número conforme necessário
+  }
+  return false;
+}
+
+function isButtonOrLink(element) {
+  // Exclui apenas botões e links, não outros elementos como LI, P etc.
+  return ['BUTTON', 'A','LI','P','BTN','H1','I','B','STRONG'].includes(element.tagName);
+}
+
+function isTextElement(element) {
+  // Esses elementos receberão a caixinha
+  const textTags = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'P', 'SPAN', 'LI', 'BTN', 'BUTTON', ];
+  return textTags.includes(element.tagName);
+}
+function isHelpPanel(element) {
+  return element.id === 'ajuda-modal';
+}
+
+function adjustPosition(element, rect, scale) {
+  // Se for o painel de ajuda, não reposicione
+  if (isHelpPanel(element)) {
+    return;
+  }
+
+  const scaledWidth = rect.width * scale;
+  const scaledHeight = rect.height * scale;
+
+  const offsetX = (scaledWidth - rect.width) / 2;
+  const offsetY = (scaledHeight - rect.height) / 2;
+
+  // Apenas altera a posição se realmente precisar (i.e., se o elemento ultrapassar a tela)
+  if (rect.left - offsetX < 0 || rect.right + offsetX > window.innerWidth) {
+    element.style.position = 'relative';
+    element.style.left = `${Math.min(Math.max(-rect.left + offsetX, 0), window.innerWidth - rect.right - offsetX)}px`;
+  }
+  
+  if (rect.top - offsetY < 0 || rect.bottom + offsetY > window.innerHeight) {
+    element.style.position = 'relative';
+    element.style.top = `${Math.min(Math.max(-rect.top + offsetY, 0), window.innerHeight - rect.bottom - offsetY)}px`;
+  }
+}
+
+
+function resetMagnify() {
+  document.querySelectorAll('*').forEach(el => {
+    if (!isWidget(el) && !isWidget2(el) && !isHelpPanel(el)) {
+      el.style.transform = '';
+      el.style.transition = '';
+      el.style.transformOrigin = '';
+      el.style.overflow = '';
+      el.style.position = '';
+      el.style.left = '';
+      el.style.top = '';
+      el.style.zIndex = ''; // Resetando o z-index
+      el.style.boxShadow = ''; // Resetando a sombra
+      el.style.border = ''; // Resetando a borda
+    }
+  });
+
+  const widget = document.getElementById('acessibilidade-button');
+  const widget2 = document.getElementById('microfone-button');
+  
+  if (widget) {
+    widget.style.position = 'fixed';
+    widget.style.top = '200px';
+    widget.style.right = '10px';
+  }
+  if (widget2) {
+    widget2.style.position = 'fixed';
+    widget2.style.top = '150px';
+    widget2.style.right = '10px';
+  }
+    // Reinicializa o estilo do painel de ajuda
+    const helpPanel = document.getElementById('help-panel');
+    if (helpPanel) {
+      helpPanel.style.position = 'fixed';  // Ou outro valor que funcione no seu layout
+      helpPanel.style.top = '50px';
+      helpPanel.style.right = '20px';
+      helpPanel.style.zIndex = '1001'; // Certifique-se de que fique acima de outros elementos
+    }
+}
+
+function isWidget(element) {
+  return element.id === 'acessibilidade-popup';
+}
+
+function isWidget2(element) {
+  return element.id === 'microfone-button';
+}
+
+function isContainer(element) {
+  const containerTags = ['DIV', 'SECTION', 'ARTICLE', 'HEADER', 'FOOTER', 'NAV'];
+  return containerTags.includes(element.tagName) || element.children.length > 0;
+}
+
+function isTextElement(element) {
+  const textTags = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'P', 'SPAN', 'LI', 'BTN', 'BUTTON'];
+  return textTags.includes(element.tagName);
+}
+
+function isImageElement(element) {
+  return element.tagName === 'IMG' || element.tagName === 'VIDEO' || element.tagName === 'PICTURE';
+}
+
+function calculateScale(rect) {
+  const buffer = 20;
+  const maxScale = 1.5;
+  const scaleX = Math.min(maxScale, (window.innerWidth - buffer) / rect.width);
+  const scaleY = Math.min(maxScale, (window.innerHeight - buffer) / rect.height);
+  return Math.min(scaleX, scaleY);
+}
+
+  window.aumentarEspaco = function () {
+    letterSpacing += 1
+    document.querySelectorAll('*').forEach(el => {
+      el.style.letterSpacing = `${letterSpacing}px`
+    })
+  }
+
+  window.diminuirEspaco = function () {
+    letterSpacing = Math.max(letterSpacing - 1, 0) // Não permitir valor negativo
+    document.querySelectorAll('*').forEach(el => {
+      el.style.letterSpacing = `${letterSpacing}px`
+    })
+  }
+
+  let microfoneLigado = false;
+  let recognition; // Variável global para o reconhecimento de voz
+  let utterance; // Variável global para a síntese de fala
+  
+  function toggleMicrofone() {
+    microfoneLigado = !microfoneLigado; // Alterna o estado
+    const statusIndicator = document.getElementById('status-indicator');
+    if (statusIndicator) {
+      statusIndicator.style.backgroundColor = microfoneLigado ? 'green' : 'red'; // Microfone ligado (verde) ou desligado (vermelho)
+    } else {
+      console.error('Elemento de status do microfone não encontrado.');
+    }
+  
+    if (microfoneLigado) {
+      playWelcomeMessage(); // Reproduz a mensagem de boas-vindas e depois ativa o microfone
+    } else {
+      if (utterance) {
+        speechSynthesis.cancel(); // Interrompe a frase automática se o microfone for desligado
+      }
+      if (recognition) {
+        recognition.stop(); // Para o reconhecimento de voz quando o microfone é desligado
+      }
+      playBeepSound(); // Reproduz o som de beep ao desligar o microfone
+    }
+}
+  
+  function iniciarMicrofone() {
+    // Verifica se SpeechRecognition é suportado
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.log('SpeechRecognition não suportado');
+      return;
+    }
+  
+    recognition = new SpeechRecognition();
+    recognition.continuous = true; // Continua ouvindo até ser explicitamente interrompido
+    recognition.interimResults = true; // Exibe resultados enquanto estão sendo falados
+  
+    let comandos = []; // Array para armazenar comandos reconhecidos
+  
+    recognition.onstart = function () {
+      console.log('Microfone está ativo');
+      comandos = []; // Limpa o array de comandos a cada início
+    };
+  
+    recognition.onerror = function (event) {
+      console.error('Erro ocorrido no reconhecimento de fala:', event.error);
+    };
+  
+    recognition.onresult = function (event) {
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          comandos.push(event.results[i][0].transcript.toLowerCase());
+        }
+      }
+  
+      if (comandos.length > 0) {
+        // Processa todos os comandos reconhecidos
+        processarComandos(comandos);
+        comandos = []; // Limpa o array de comandos após o processamento
+      }
+    };
+  
+    recognition.onend = function () {
+      if (microfoneLigado) {
+        recognition.start(); // Reinicia o reconhecimento automaticamente se o microfone ainda estiver ligado
+      }
+    };
+  
+    recognition.start();
+  }
+  
+  function processarComandos(comandosReconhecidos) {
+    let comandoReconhecido = false; // Flag para verificar se algum comando foi reconhecido
+
+    for (const comando of comandosReconhecidos) {
+        console.log('Comando de voz:', comando);
+
+        // Se estivermos esperando o nome, qualquer coisa que for falada será inserida no campo de nome
+        if (aguardandoNome) {
+            preencherCampoNome(comando); // Preenche o campo de nome com o comando falado
+            aguardandoNome = false; // Reseta a variável para não capturar mais nomes até necessário
+            comandoReconhecido = true;
+        } else {
+            // Processa os outros comandos normalmente
+            if (comando.includes('aumentar texto')) {
+                aumentarTexto();
+                comandoReconhecido = true;
+            } else if (comando.includes('diminuir texto')) {
+                diminuirTexto();
+                comandoReconhecido = true;
+            } else if (comando.includes('escala de cinza')) {
+                escalaDeCinza();
+                comandoReconhecido = true;
+            } else if (comando.includes('contraste alto')) {
+                contrasteAlto();
+                comandoReconhecido = true;
+            } else if (comando.includes('contraste baixo')) {
+                contrasteBaixo();
+                comandoReconhecido = true;
+            } else if (comando.includes('contraste negativo')) {
+                contrasteNegativo();
+                comandoReconhecido = true;
+            } else if (comando.includes('links sublinhados')) {
+                linksSublinhados();
+                comandoReconhecido = true;
+            } else if (comando.includes('fonte legível')) {
+                fonteLegivel();
+                comandoReconhecido = true;
+            } else if (comando.includes('modo lupa')) {
+                toggleMagnify();
+                comandoReconhecido = true;
+            } else if (comando.includes('aumentar espaçamento')) {
+                aumentarEspaco();
+                comandoReconhecido = true;
+            } else if (comando.includes('diminuir espaçamento')) {
+                diminuirEspaco();
+                comandoReconhecido = true;
+            } else if (comando.includes('reiniciar')) {
+                reiniciar();
+                comandoReconhecido = true;
+            } else if (comando.includes('ajuda')) {
+                mostrarAjuda();
+                falarFraseDeAjuda();
+                comandoReconhecido = true;
+            } else if (comando.includes('fechar')) {
+                window.fecharAjuda(); // Chama a função que fechará o popup de ajuda
+                falarFraseDeFechamento(); // Nova frase automática após "fechar"
+                comandoReconhecido = true;
+            } else if (comando.includes('recursos')) {
+                clicarNoBotaoDeAcessibilidade();
+                falarFraseDeAcessibilidade();
+                comandoReconhecido = true;
+            } else if (comando.includes('sair')) {
+                clicarNoBotaoDeAcessibilidade();
+                comandoReconhecido = true;
+            } else if (comando.includes('saber mais')) {
+                falarFraseDeInformacao();
+                comandoReconhecido = true;
+            } else if (comando.includes('serviços')) {
+                clicarNaLinhaServicos();
+                falarFraseDeServicos();
+                comandoReconhecido = true;
+            } else if (comando.includes('sobre')) {
+                clicarNaLinhaSobre();
+                falarFraseSobre();
+                comandoReconhecido = true;
+            } else if (comando.includes('time')) {
+                clicarNaLinhaTime();
+                falarFraseTime();
+                comandoReconhecido = true;
+            } else if (comando.includes('sim')) {
+                falarFrasePositiva(); // Função que iniciará uma frase quando o usuário falar "sim"
+                clicarNaLinhaContato();
+                comandoReconhecido = true;
+            } else if (comando.includes('não')) {
+                console.log("Comando 'não' detectado, sem ação executada.");
+                comandoReconhecido = true;
+            } else if (comando.includes('instagram')) {
+                clicarNoInstagram(); // Simula o clique no link do Instagram
+                comandoReconhecido = true;
+            } else if (comando.includes('linkedin')) {
+                clicarNoLinkedIn(); // Simula o clique no link do LinkedIn
+                comandoReconhecido = true;
+            } else if (comando.includes('email') || comando.includes('e-mail') || comando.includes('emal') || comando.includes('imail')) {
+                falarFraseDeEmail(); // Função que iniciará a nova frase após o comando "email"
+                comandoReconhecido = true;
+            } else if (comando.includes('whatsapp')) {
+                clicarNoWhatsapp();
+                comandoReconhecido = true;
+            }
+        }
+    }
+
+    // Se nenhum comando foi reconhecido
+    if (!comandoReconhecido) {
+        repetirComando(); // Função que dispara a frase para repetir o comando
+    }
+}
+
+// Função para disparar a frase pedindo para repetir o comando
+function repetirComando() {
+    const mensagem = "Desculpe, não entendi o comando. Por favor, repita.";
+    console.log(mensagem);
+
+    // Usa síntese de fala para reproduzir a frase
+    const synth = window.speechSynthesis;
+    const utterThis = new SpeechSynthesisUtterance(mensagem);
+    utterThis.lang = 'pt-BR';
+    synth.speak(utterThis);
+}
+  
+  function falarFraseDeAcessibilidade() {
+    if (!('speechSynthesis' in window)) {
+      console.log('SpeechSynthesis não suportado');
+      return;
+    }
+  
+    const acessibilidadeMessage = "Você está na seção de recursos de acessibilidade.";
+    const followUpMessage = "Se precisar de ajuda para saber como os recursos funcionam, diga a palavra ajuda";
+  
+    const utterance1 = new SpeechSynthesisUtterance(acessibilidadeMessage);
+    const utterance2 = new SpeechSynthesisUtterance(followUpMessage);
+  
+    // Inicia a segunda frase após a primeira terminar
+    utterance1.onend = function() {
+      speechSynthesis.speak(utterance2);
+    };
+  
+    // Inicia a fala
+    speechSynthesis.speak(utterance1);
+  }
+
+  function falarFraseDeAjuda() {
+    if (!('speechSynthesis' in window)) {
+      console.log('SpeechSynthesis não suportado');
+      return;
+    }
+  
+    const ajudaMessage = "Nós temos algumas das seguintes funcionalidades, como o Aumentar texto e Diminuir Texto, Fonte em Negrito, funções de contraste como Escala de Cinza, Contraste Alto, Baixo e Negativo, Links Sublinhados que sublinha todos os links da página, Modo Lupa e as funções de Aumentar e Diminuir o espaçamento entre as letras, também tem o botão de reiniciar, que reinicia as funcionalidades.";
+    const ajudaAdicional = "Se não conseguiu entender pode falar Ajuda novamente que irei repetir, se entendeu, fale Fechar"
+
+    const utterance3 = new SpeechSynthesisUtterance(ajudaMessage);
+    const utterance4 = new SpeechSynthesisUtterance(ajudaAdicional);
+
+    utterance3.onend = function() {
+      speechSynthesis.speak(utterance4)
+    }
+  
+    // Inicia a fala
+    speechSynthesis.speak(utterance3);
+  }
+
+  function falarFraseDeFechamento() {
+    if (!('speechSynthesis' in window)) {
+        console.log('SpeechSynthesis não suportado');
+        return;
+    }
+
+    const fechamentoMessage = "Você fechou o popup de ajuda.";
+    const nextStepMessage = "Qual ou quais recursos você deseja ativar?, quando ativar os recursos que desejar, fale sair para fechar os recursos de acessibilidade";
+
+    const utterance1 = new SpeechSynthesisUtterance(fechamentoMessage);
+    const utterance2 = new SpeechSynthesisUtterance(nextStepMessage);
+
+    // Inicia a segunda frase após a primeira terminar
+    utterance1.onend = function() {
+        speechSynthesis.speak(utterance2);
+    };
+
+    // Inicia a fala
+    speechSynthesis.speak(utterance1);
+}
+  
+  function clicarNaLinhaServicos() {
+    const linkServicos = document.querySelector('a[href="#servicos"]');
+    if (linkServicos) {
+      linkServicos.click(); // Simula um clique no link "Serviços"
+    } else {
+      console.error('Link de serviços não encontrado.');
+    }
+  }
+  
+  function falarFraseDeServicos() {
+    if (!('speechSynthesis' in window)) {
+      console.log('SpeechSynthesis não suportado');
+      return;
+    }
+  
+    const servicosMessage = "Nós trabalhamos com web sites, plugin de acessibilidade e no desenvolvimento de aplicativos mobile";
+    const fraseAdicional = "Se deseja saber sobre nós, fale sobre";
+  
+    const utterance = new SpeechSynthesisUtterance(servicosMessage);
+  
+    // Quando a primeira frase terminar, a segunda começa
+    utterance.onend = function() {
+      const nextUtterance = new SpeechSynthesisUtterance(fraseAdicional);
+      speechSynthesis.speak(nextUtterance);
+    };
+  
+    // Inicia a síntese de fala para a primeira frase
+    speechSynthesis.speak(utterance);
+  }
+
+  function falarFraseSobre() {
+    if (!('speechSynthesis' in window)) {
+        console.log('SpeechSynthesis não suportado');
+        return;
+    }
+
+    const sobreMessage = "A VIZY é uma startup dedicada a criar soluções tecnológicas que tornam o mundo digital mais acessível. Desde websites e aplicativos até plugins de acessibilidade, nossa missão é garantir que ninguém seja deixado para trás no universo digital. Fundada em 2023, nossa empresa se orgulha de estar à frente da inovação em acessibilidade digital no estado de Sergipe.";
+    const sobreAdicional = "Se deseja conhecer nosso time, fale time";
+
+    const utterance1 = new SpeechSynthesisUtterance(sobreMessage);
+    const utterance2 = new SpeechSynthesisUtterance(sobreAdicional);
+
+    // Fala a frase adicional após a primeira
+    utterance1.onend = function() {
+        speechSynthesis.speak(utterance2);
+    };
+
+    // Inicia a fala da primeira frase
+    speechSynthesis.speak(utterance1);
+}
+
+function clicarNaLinhaSobre() {
+  const linkSobre = document.querySelector('a[href="#sobre"]');
+  if (linkSobre) {
+    linkSobre.click(); // Simula um clique no link "Sobre"
+  } else {
+    console.error('Link de sobre nós não encontrada.');
+  }
+}
+
+function falarFraseTime() {
+  if (!('speechSynthesis' in window)) {
+      console.log('SpeechSynthesis não suportado');
+      return;
+  }
+
+  const timeMessage = "Nosso time é composto por Gabriel Lima (COO e programador), Izabely Fernandes (CEO e designer) e Jeferson Gonzaga (CTO e programador)";
+  const preContatoMessage = "Você deseja entrar em contato conosco de alguma forma?"
+
+  const utterance1 = new SpeechSynthesisUtterance(timeMessage);
+  const utterance2 = new SpeechSynthesisUtterance(preContatoMessage);
+
+  utterance1.onend = function() {
+    speechSynthesis.speak(utterance2);
+  }
+
+  // Inicia a fala
+  speechSynthesis.speak(utterance1);
+}
+
+function clicarNaLinhaTime() {
+  const linkTime = document.querySelector('a[href="#time"]');
+  if (linkTime) {
+    linkTime.click(); // Simula um clique no link "Time"
+  } else {
+    console.error('Link de time não encontrado.');
+  }
+}
+
+function falarFrasePositiva() {
+  if (!('speechSynthesis' in window)) {
+      console.log('SpeechSynthesis não suportado');
+      return;
+  }
+
+  const positivaMessage = "Você está na parte para entrar em contato, você pode entrar em contato conosco pelo whatsapp, facebook, instagram, linkedin ou pelo email";
+  const followUpMessage = "Qual meio de contato você prefere?";
+
+  const utterance1 = new SpeechSynthesisUtterance(positivaMessage);
+  const utterance2 = new SpeechSynthesisUtterance(followUpMessage);
+
+  // Inicia a segunda frase após a primeira terminar
+  utterance1.onend = function () {
+      speechSynthesis.speak(utterance2);
+  };
+
+  // Inicia a fala
+  speechSynthesis.speak(utterance1);
+}
+
+// Função para preencher o campo de nome com o comando falado
+function preencherCampoNome(nomeFalado) {
+  const campoNome = document.getElementById("name");
+  campoNome.value = nomeFalado; // Preenche o campo de nome com o comando de voz
+  falarFraseAposNome(); // Fala a frase após o nome ser preenchido
+  aguardandoNome = false; // Reseta o estado de aguardo para evitar preenchimento de outros campos
+}
+
+// Função para falar um texto usando a API de SpeechSynthesis
+function falarTexto(texto) {
+  const synth = window.speechSynthesis;
+  const utterance = new SpeechSynthesisUtterance(texto);
+  synth.speak(utterance);
+}
+
+// Função que fala a frase de email e aguarda o nome
+function falarFraseDeEmail() {
+  const fraseEmail = "Você está na parte de email, por favor fale seu nome.";
+  falarTexto(fraseEmail);
+  aguardandoNome = true; // Sinaliza que o sistema está aguardando o nome
+}
+
+// Função que fala uma nova frase após o nome ser preenchido
+function falarFraseAposNome() {
+  const frasePosNome = "Obrigado, seu nome foi registrado. Agora, por favor, informe seu email.";
+  falarTexto(frasePosNome);
+}
+
+function clicarNaLinhaContato() {
+  const linkContato = document.querySelector('a[href="#contato"]');
+  if (linkContato) {
+    linkContato.click(); // Simula um clique no link "Contato"
+  } else {
+    console.error('Link de contato não encontrado.');
+  }
+}
+
+function clicarNoInstagram() {
+  const links = document.querySelectorAll('a[href="https://www.instagram.com/vizy.startup"]');
+  if (links.length > 0) {
+      links[0].click(); // Simula o clique no primeiro link que corresponde ao Instagram
+  } else {
+      console.log('Link do Instagram não encontrado');
+  }
+}
+
+function clicarNoLinkedIn() {
+  const links = document.querySelectorAll('a[href="https://www.linkedin.com/in/vizy-tech-361865329?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"]');
+  if (links.length > 0) {
+      links[0].click(); // Simula o clique no primeiro link que corresponde ao LinkedIn
+  } else {
+      console.log('Link do LinkedIn não encontrado');
+  }
+}
+
+function clicarNoWhatsapp() {
+  const links = document.querySelectorAll('a[href="https://wa.me/557999860906"]');
+  if (links.length > 0) {
+    links[0].click();
+  } else {
+    console.log('Link do Whatsapp não encontrado');
+  }
+}
+  
+  function clicarNoBotaoDeAcessibilidade() {
+    const botaoAcessibilidade = document.getElementById('acessibilidade-button');
+    if (botaoAcessibilidade) {
+      botaoAcessibilidade.click(); // Simula um clique no botão de acessibilidade
+    } else {
+      console.error('Botão de acessibilidade não encontrado.');
+    }
+  }
+  
+  function playBeepSound(callback) {
+    const beepSound = new Audio('beep.mp3.mp3'); // Certifique-se de que o caminho do arquivo de som esteja correto
+    beepSound.play().then(() => {
+      if (callback) callback(); // Chama o callback após o beep ser reproduzido
+    }).catch(error => console.error('Erro ao reproduzir o som:', error));
+  }
+  
+  function playWelcomeMessage() {
+    // Verifica se o navegador suporta SpeechSynthesis
+    if (!('speechSynthesis' in window)) {
+      console.log('SpeechSynthesis não suportado');
+      return;
+    }
+  
+    // Mensagem para a síntese de fala
+    const message = "Bem-vindo à VIZY, você deseja saber mais sobre o nosso projeto, ou acessar a aba dos recursos?";
+    utterance = new SpeechSynthesisUtterance(message);
+  
+    // Event listener para quando a fala termina
+    utterance.onend = function () {
+      playBeepSound(() => {
+        if (microfoneLigado) {
+          iniciarMicrofone(); // Ativa o microfone após o beep
+        }
+      });
+    };
+  
+    // Inicia a síntese de fala
+    speechSynthesis.speak(utterance);
+  }
+  
+  function falarFraseDeInformacao() {
+    if (!('speechSynthesis' in window)) {
+      console.log('SpeechSynthesis não suportado');
+      return;
+    }
+  
+    const infoMessage = "Sabia que somente no Brasil, há cerca de 6,5 milhões de pessoas com algum tipo de deficiência visual? Pois é, essa é uma parcela populacional que acaba sendo esquecida tanto da sociedade, quanto principalmente do âmbito digital. É pensando nesses indivíduos que desenvolvemos tecnologias assistivas que geram uma maior inclusão e autonomia dos mesmos.";
+    const followUpMessage = "Se deseja continuar, você pode falar serviços para saber com o que nós trabalhamos.";
+  
+    const utterance1 = new SpeechSynthesisUtterance(infoMessage);
+    const utterance2 = new SpeechSynthesisUtterance(followUpMessage);
+  
+    // Inicia a segunda frase assim que a primeira terminar
+    utterance1.onend = function () {
+      speechSynthesis.speak(utterance2);
+    };
+  
+    // Inicia a primeira frase
+    speechSynthesis.speak(utterance1);
+  }
+  
+  
+  // Adiciona o listener de clique ao botão de microfone
+  document.getElementById('microfone-button').addEventListener('click', toggleMicrofone);    
+
+  window.mostrarAjuda = function () {
+    const modal = document.getElementById('ajuda-modal')
+    modal.style.display = 'block'
+    setTimeout(() => {
+      modal.style.opacity = '1'
+      modal.style.transform = 'translateY(0)'
+    }, 10)
+  }
+
+  window.fecharAjuda = function () {
+    const modal = document.getElementById('ajuda-modal')
+    modal.style.opacity = '0'
+    modal.style.transform = 'translateY(-20px)'
+    setTimeout(() => {
+      modal.style.display = 'none'
+    }, 500) // Tempo de transição deve corresponder ao tempo definido no estilo
+  }
+})()
+
+window.mostrarAjuda = function () {
+  const modal = document.getElementById('ajuda-modal')
+  modal.style.display = 'block'
+  setTimeout(() => {
+    modal.style.opacity = '1'
+    modal.style.transform = 'translateY(0)'
+  }, 10)
+}
+
+window.fecharAjuda = function () {
+  const modal = document.getElementById('ajuda-modal')
+  modal.style.opacity = '0'
+  modal.style.transform = 'translateY(-20px)'
+  setTimeout(() => {
+    modal.style.display = 'none'
+  }, 500) // Tempo de transição deve corresponder ao tempo definido no estilo
+}
